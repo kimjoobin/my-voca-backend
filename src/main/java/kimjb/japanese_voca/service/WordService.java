@@ -95,7 +95,8 @@ public class WordService {
     }
 
     @Transactional(readOnly = true)
-    public void getSearchWord() {
+    public List<JLPTWordResponseDto> getSearchWord(String searchText) {
+        return wordRepository.getSearchWord(searchText);
     }
 
     public void createFavoriteWord(Long wordId) {

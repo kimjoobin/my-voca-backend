@@ -2,6 +2,7 @@ package kimjb.japanese_voca.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Comment;
 
 import java.time.LocalDateTime;
 
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @ToString
 @Builder
+@Comment("즐겨찾기 단어")
 public class FavoriteWord {
 
     @Id

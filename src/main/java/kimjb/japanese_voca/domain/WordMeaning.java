@@ -2,6 +2,7 @@ package kimjb.japanese_voca.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Comment;
 
 @Entity
 @Getter
@@ -9,6 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @ToString
 @Builder
+@Comment("단어 예시문")
 public class WordMeaning {
 
     @Id

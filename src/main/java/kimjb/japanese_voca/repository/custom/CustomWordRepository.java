@@ -12,4 +12,6 @@ public interface CustomWordRepository {
     Map<String, Object> getChapterByLevel(String level);
 
     List<JLPTWordResponseDto> getTodayWord();
+
+    List<JLPTWordResponseDto> getSearchWord(String searchText);
 }

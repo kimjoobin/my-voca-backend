@@ -47,8 +47,8 @@ public class WordController {
     }
 
     @GetMapping("/search")
-    public void getSearchWord() {
-        wordService.getSearchWord();
+    public List<JLPTWordResponseDto> getSearchWord(@RequestParam(name = "searchText") String searchText) {
+        return wordService.getSearchWord(searchText);
     }
 
     @GetMapping("/today")

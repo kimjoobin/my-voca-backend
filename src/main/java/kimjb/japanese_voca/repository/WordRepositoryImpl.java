@@ -208,4 +208,35 @@ public class WordRepositoryImpl implements CustomWordRepository {
 
         return query;
     }
+
+    @Override
+    public List<JLPTWordResponseDto> getSearchWord(String searchText) {
+        return queryFactory
+                .select(
+                        Projections.fields(
+                                JLPTWordResponseDto.class
+                                ,word.id.as("wordId")
+                                ,word.japaneseWord.as("word")
+                                ,word.hiragana.as("hiragana")
+                                ,word.meaning.as("meaning")
+                                , level.name.as("jlptLevel")
+                        )
+                )
+                .from(word)
+                .where(
+                        containsSearchTerm(searchText)
+                )
+                .fetch();
+    }
+
+    // 검색어 조건 메서드
+    private BooleanExpression containsSearchTerm(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return null; // 검색어가 없으면 조건 없음
+        }
+
+        return word.hiragana.containsIgnoreCase(searchTerm)
+                .or(word.meaning.contains(searchTerm))
+                .or(word.hiragana.containsIgnoreCase(searchTerm));
+    }
 }

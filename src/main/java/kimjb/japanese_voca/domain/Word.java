@@ -2,6 +2,7 @@ package kimjb.japanese_voca.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Comment;
 
 @Entity
 @Getter
@@ -9,6 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @ToString(exclude = {"level", "category"})
 @Builder
+@Comment("단어")
 public class Word {
 
     @Id
