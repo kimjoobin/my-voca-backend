@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,7 +22,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static kimjb.japanese_voca.domain.QFavoriteWord.favoriteWord;
 import static kimjb.japanese_voca.domain.QLevel.level;
 import static kimjb.japanese_voca.domain.QWord.word;
 import static kimjb.japanese_voca.domain.QWordMeaning.wordMeaning;
@@ -36,8 +34,7 @@ public class WordRepositoryImpl implements CustomWordRepository {
 
     @Override
     public List<JLPTWordResponseDto> getJPLTWord(String chapter,
-                                                 String wordLevel,
-                                                 String searchVal) {
+                                                 String wordLevel) {
 
         int chapterNum = Integer.parseInt(chapter.substring(chapter.lastIndexOf("r") + 1)) - 1;
 
@@ -47,14 +44,9 @@ public class WordRepositoryImpl implements CustomWordRepository {
                         JLPTWordResponseDto.class
                         ,word.id.as("wordId")
                         ,Expressions.asString(chapter).as("chapter")
-                        ,word.japaneseWord.as("word")
+                        ,word.japaneseWord.as("kanji")
                         ,word.hiragana.as("hiragana")
                         ,word.meaning.as("meaning")
-                        , Expressions.cases()
-                            .when(favoriteWord.word.id.isNull())
-                            .then(false)
-                            .otherwise(true)
-                                    .as("isFavorite")
                         , level.name.as("jlptLevel")
                     )
                 )
@@ -63,13 +55,13 @@ public class WordRepositoryImpl implements CustomWordRepository {
                 .innerJoin(level).on(word.level.eq(level)
                         .and(level.name.stringValue().eq(wordLevel))
                 )
-                .leftJoin(favoriteWord).on(favoriteWord.word.eq(word))
-                .leftJoin(wordMeaning).on(wordMeaning.word.eq(word))
+                .innerJoin(wordMeaning).on(wordMeaning.word.eq(word))
                 .orderBy(word.hiragana.asc())
-                .offset(chapterNum * 20L)
-                .limit(20)
+                .offset(chapterNum * 25L)
+                .limit(25)
                 .fetch();
 
+        // 단어 별 예시문 추가
         fetchWordExample(query);
 
         return query;
@@ -89,16 +81,6 @@ public class WordRepositoryImpl implements CustomWordRepository {
                     wordDto.setWordExamples(examplesMap.getOrDefault(wordDto.getWordId(), new ArrayList<>()))
             );
         }
-    }
-
-    // 검색 조건 처리를 위한 헬퍼 메서드
-    private BooleanExpression containsSearchVal(String searchVal) {
-        if (StringUtils.isEmpty(searchVal)) {
-            return null;
-        }
-        return word.japaneseWord.contains(searchVal)
-                .or(word.hiragana.contains(searchVal))
-                .or(word.meaning.contains(searchVal));
     }
 
     // 중간 매핑을 위한 내부 클래스
@@ -162,7 +144,7 @@ public class WordRepositoryImpl implements CustomWordRepository {
                 .fetch();
 
         int totalWords = words.size();
-        int totalChapters = (int)Math.ceil(totalWords / 20.0);
+        int totalChapters = (int)Math.ceil(totalWords / 25.0);
 
         List<String> chapter = IntStream.rangeClosed(1, totalChapters)
                 .mapToObj(i -> "Chapter" + i)
@@ -185,20 +167,14 @@ public class WordRepositoryImpl implements CustomWordRepository {
                     Projections.fields(
                         JLPTWordResponseDto.class
                         ,word.id.as("wordId")
-                        ,word.japaneseWord.as("word")
+                        ,word.japaneseWord.as("kanji")
                         ,word.hiragana.as("hiragana")
                         ,word.meaning.as("meaning")
-                        , Expressions.cases()
-                            .when(favoriteWord.word.id.isNull())
-                            .then(false)
-                            .otherwise(true)
-                            .as("isFavorite")
                         , level.name.as("jlptLevel")
                     )
                 )
                 .from(word)
                 .innerJoin(level).on(word.level.eq(level))
-                .leftJoin(favoriteWord).on(favoriteWord.word.eq(word))
                 .orderBy(Expressions.numberTemplate(Double.class, "RAND({0})", seed).asc())
                 .limit(5)
                 .fetch()
@@ -216,7 +192,7 @@ public class WordRepositoryImpl implements CustomWordRepository {
                         Projections.fields(
                                 JLPTWordResponseDto.class
                                 ,word.id.as("wordId")
-                                ,word.japaneseWord.as("word")
+                                ,word.japaneseWord.as("kanji")
                                 ,word.hiragana.as("hiragana")
                                 ,word.meaning.as("meaning")
                                 , level.name.as("jlptLevel")

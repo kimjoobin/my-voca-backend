@@ -1,7 +1,6 @@
 package kimjb.japanese_voca.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,18 +8,22 @@ import java.util.List;
 @Getter
 @Setter
 public class InsertWordRequestDto {
-
-    private String japanese;
+    private Long wordId;
+    private String kanji;
     private String hiragana;
-    private Long levelId;
-    private Long categoryId;
+    private String meaning;
     private List<MeanDto> meanings = new ArrayList<>();
 
     @Getter
     @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class MeanDto {
-        private String meanings;
-        private String exampleJa;
+        private Long id;
+        private Long wordId;
+        private Integer meanOrder;
+        private String exampleKanji;
+        private String exampleHiragana;
         private String exampleKo;
     }
 }

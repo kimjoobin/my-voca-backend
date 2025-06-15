@@ -1,23 +1,26 @@
 package kimjb.japanese_voca.service;
 
 import com.opencsv.CSVReader;
-import kimjb.japanese_voca.domain.*;
+import kimjb.japanese_voca.domain.Level;
+import kimjb.japanese_voca.domain.Word;
+import kimjb.japanese_voca.domain.WordMeaning;
 import kimjb.japanese_voca.dto.InsertWordRequestDto;
 import kimjb.japanese_voca.dto.JLPTWordResponseDto;
+import kimjb.japanese_voca.dto.WordResponse;
+import kimjb.japanese_voca.enums.LevelEnum;
 import kimjb.japanese_voca.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +30,6 @@ public class WordService {
 
     private final WordRepository wordRepository;
     private final WordMeaningRepository wordMeaningRepository;
-    private final FavoriteWordRepository favoriteWordRepository;
     private final UserRepository userRepository;
     private final LevelRepository levelRepository;
     private final CategoryRepository categoryRepository;
@@ -47,7 +49,7 @@ public class WordService {
 
             while ((nextLine = reader.readNext()) != null) {
                 String levelName = nextLine[0];  // N5, N4, ...
-                String categoryName = nextLine[3]; // 동사, 명사, ...
+               // String categoryName = nextLine[3]; // 동사, 명사, ...
 
                 // Level 조회
                 Long levelId = levelMap.getOrDefault(levelName, 0L);
@@ -55,9 +57,9 @@ public class WordService {
                         .orElseThrow(() -> new RuntimeException("Level " + levelName + " not found"));
 
                 // Category 조회
-                Long categoryId = categoryMap.getOrDefault(categoryName, 7L); // 기본값: 기타
+                /*Long categoryId = categoryMap.getOrDefault(categoryName, 7L); // 기본값: 기타
                 Category category = categoryRepository.findById(categoryId)
-                        .orElseThrow(() -> new RuntimeException("Category " + categoryName + " not found"));
+                        .orElseThrow(() -> new RuntimeException("Category " + categoryName + " not found"));*/
 
                 // 한자, 히라가나 분리
                 String[] wordParts = nextLine[1].split("\\[");
@@ -70,11 +72,11 @@ public class WordService {
 
                 // 뜻이 하나일 경우 그냥 하나만 저장, 여러 개일 경우 여러 개 저장
                 if (meaningArray.length == 1) {
-                    Word word = Word.createWord(level, category, kanji, hiragana, meaningArray[0].trim());
+                    Word word = Word.createWord(level, null, kanji, hiragana, meaningArray[0].trim());
                     wordRepository.save(word);
                 } else {
                     for (String meaning : meaningArray) {
-                        Word word = Word.createWord(level, category, kanji, hiragana, meaning.trim());
+                        Word word = Word.createWord(level, null, kanji, hiragana, meaning.trim());
                         wordRepository.save(word);
                     }
                 }
@@ -90,8 +92,8 @@ public class WordService {
     }
 
     @Transactional(readOnly = true)
-    public List<JLPTWordResponseDto> getJLPTWord(String chapter, String level, String searchVal) {
-        return wordRepository.getJPLTWord(chapter, level, searchVal);
+    public List<JLPTWordResponseDto> getJLPTWord(String chapter, String level) {
+        return wordRepository.getJPLTWord(chapter, level);
     }
 
     @Transactional(readOnly = true)
@@ -99,23 +101,6 @@ public class WordService {
         return wordRepository.getSearchWord(searchText);
     }
 
-    public void createFavoriteWord(Long wordId) {
-        User user = userRepository.findById(1L)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        Word word = wordRepository.findById(wordId)
-                .orElse(null);
-
-        FavoriteWord favoriteWord = favoriteWordRepository.findByWord(word);
-
-        if (favoriteWord != null) {
-            // 즐겨찾기 해제
-            favoriteWordRepository.deleteByWord(word);
-        } else {
-            // 즐겨찾기 등록
-            favoriteWordRepository.save(FavoriteWord.createFavoriteWord(word, user));
-        }
-    }
 
     @Transactional(readOnly = true)
     public List<JLPTWordResponseDto> getTodayWord() {
@@ -169,5 +154,82 @@ public class WordService {
             e.printStackTrace();
             throw new RuntimeException("CSV 파일 처리 중 오류 발생: " + e.getMessage());
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<JLPTWordResponseDto> getWordAll() {
+        return wordRepository.findAll()
+                .stream()
+                .map(item -> {
+                    return new JLPTWordResponseDto(
+                            item.getId(),
+                            "",
+                            item.getJapaneseWord(),
+                            item.getHiragana(),
+                            item.getMeaning(),
+                            LevelEnum.ALL,
+                            new ArrayList<>()
+                    );
+                }).toList();
+    }
+
+    public void updateWord(Long wordId, InsertWordRequestDto requestDto) {
+        Word word = wordRepository.findById(wordId)
+                .orElseThrow(() -> new IllegalArgumentException("Word not found with id: " + wordId));
+
+        word.updateWord(requestDto.getKanji(), requestDto.getHiragana(), requestDto.getMeaning());
+
+        for (int i = 0; i < word.getWordMeanings().size(); i++) {
+            WordMeaning wordMeaning = word.getWordMeanings().get(i).updateExample(
+                    requestDto.getMeanings().get(i).getExampleKanji(),
+                    requestDto.getMeanings().get(i).getExampleHiragana(),
+                    requestDto.getMeanings().get(i).getExampleKo()
+            );
+            wordMeaningRepository.save(wordMeaning);
+        }
+
+    }
+
+    public InsertWordRequestDto getWordById(Long id) {
+        Word word = wordRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Word not found"));
+
+        return convertToDto(word);
+    }
+
+    // Entity를 DTO로 변환
+    private InsertWordRequestDto convertToDto(Word word) {
+        InsertWordRequestDto wordDto = new InsertWordRequestDto();
+        wordDto.setWordId(word.getId());
+        wordDto.setKanji(word.getJapaneseWord());
+        wordDto.setHiragana(word.getHiragana());
+        wordDto.setMeaning(word.getMeaning());
+
+        List<InsertWordRequestDto.MeanDto> meaningDtos = word.getWordMeanings().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+
+        wordDto.setMeanings(meaningDtos);
+
+        return wordDto;
+    }
+
+    // WordMeaning Entity를 DTO로 변환
+    private InsertWordRequestDto.MeanDto convertToDto(WordMeaning wordMeaning) {
+        InsertWordRequestDto.MeanDto dto = new InsertWordRequestDto.MeanDto();
+        dto.setId(wordMeaning.getId());
+        dto.setWordId(wordMeaning.getWord().getId());
+        dto.setMeanOrder(wordMeaning.getMeanOrder());
+        dto.setExampleHiragana(wordMeaning.getExampleHiragana());
+        dto.setExampleKanji(wordMeaning.getExampleKanji());
+        dto.setExampleKo(wordMeaning.getExampleKoTranslate());
+
+        return dto;
+    }
+
+    public Page<WordResponse> getAdminWordList(Pageable pageable) {
+        Page<Word> wordList = wordRepository.findAll(pageable);
+
+        return wordList.map(WordResponse::from);
+
     }
 }

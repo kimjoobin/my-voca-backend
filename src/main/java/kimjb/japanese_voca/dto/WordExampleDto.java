@@ -1,6 +1,5 @@
 package kimjb.japanese_voca.dto;
 
-import com.querydsl.core.annotations.QueryProjection;
 import lombok.*;
 
 @Getter

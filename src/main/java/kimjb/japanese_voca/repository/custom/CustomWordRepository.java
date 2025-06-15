@@ -7,7 +7,7 @@ import java.util.Map;
 
 public interface CustomWordRepository {
 
-    List<JLPTWordResponseDto> getJPLTWord(String chapter, String level, String searchVal);
+    List<JLPTWordResponseDto> getJPLTWord(String chapter, String level);
 
     Map<String, Object> getChapterByLevel(String level);
 

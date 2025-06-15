@@ -29,6 +29,9 @@ public class WordMeaning {
 
     private String exampleKoTranslate;
 
+    @Builder.Default
+    private String useYn = "Y";
+
     // 필요한 필드만 받는 정적 팩토리 메서드
     public static WordMeaning createWordMeaning(Word word,
                                                 Integer meanOrder,

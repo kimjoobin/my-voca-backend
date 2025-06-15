@@ -1,6 +1,5 @@
 package kimjb.japanese_voca.dto;
 
-import com.querydsl.core.annotations.QueryProjection;
 import kimjb.japanese_voca.enums.LevelEnum;
 import lombok.*;
 
@@ -18,13 +17,11 @@ public class JLPTWordResponseDto {
 
     private String chapter;
 
-    private String word;
+    private String kanji;
 
     private String hiragana;
 
     private String meaning;
-
-    private boolean isFavorite;
 
     private LevelEnum jlptLevel;
 

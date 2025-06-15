@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Comment;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor
@@ -18,6 +21,7 @@ public class Word {
     @Column(name = "word_id", nullable = false, columnDefinition = "BIGINT(20) UNSIGNED COMMENT '단어 pk'")
     private Long id;
 
+    @Column(name = "japanese_word", columnDefinition = "VARCHAR(255) COMMENT '일본어 단어(한자)'")
     private String japaneseWord;
 
     private String hiragana;
@@ -36,6 +40,13 @@ public class Word {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @Builder.Default
+    @OneToMany(mappedBy = "word")
+    private List<WordMeaning> wordMeanings = new ArrayList<>();
+
+    @Builder.Default
+    private String useYn = "Y";
+
     public static Word createWord(Level level, Category category, String kanji, String hiragana, String meaning) {
         return Word.builder()
                 .level(level)
@@ -44,6 +55,12 @@ public class Word {
                 .hiragana(hiragana)
                 .meaning(meaning)
                 .build();
+    }
+
+    public void updateWord(String japaneseWord, String hiragana, String meaning) {
+        this.japaneseWord = japaneseWord;
+        this.hiragana = hiragana;
+        this.meaning = meaning;
     }
 
 }
